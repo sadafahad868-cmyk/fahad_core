@@ -1,0 +1,9 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Fahad Core mark</title>
+  <desc id="desc">A geometric FC monogram for the Fahad Core chatbot.</desc>
+  <rect x="8" y="8" width="80" height="80" rx="8" fill="#171A1C"/>
+  <path d="M28 25H67V34H39V45H62V54H39V72H28V25Z" fill="#F4EFE6"/>
+  <path d="M66 25H76V72H66V25Z" fill="#26A69A"/>
+  <path d="M48 62H76V72H48V62Z" fill="#D96853"/>
+  <path d="M20 20L29 20L29 29L20 29L20 20Z" fill="#C99A24"/>
+</svg>
