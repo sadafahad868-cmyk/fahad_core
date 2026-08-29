@@ -250,6 +250,97 @@
       white-space: nowrap;
     }
 
+    .account {
+      cursor: pointer;
+    }
+
+    .modal-overlay {
+      display: grid;
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      place-items: center;
+      padding: 20px;
+      background: rgba(23, 21, 18, 0.45);
+    }
+
+    .modal-overlay[hidden] {
+      display: none;
+    }
+
+    .modal-card {
+      display: grid;
+      width: min(420px, 100%);
+      gap: 18px;
+      padding: 24px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      color: var(--accent-dark);
+      font-size: 21px;
+    }
+
+    .modal-field {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .modal-field input {
+      min-height: 46px;
+      padding: 0 14px;
+      color: var(--ink);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      font-size: 16px;
+    }
+
+    .modal-field input:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
+    .modal-static {
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      color: var(--ink);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .modal-danger {
+      min-height: 46px;
+      color: #b9553b;
+      background: #fff1e8;
+      border: 1px solid #efc8b7;
+      border-radius: 11px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .modal-danger:hover {
+      background: #ffe4d5;
+    }
+
     .icon-button {
       display: grid;
       width: 42px;
@@ -873,6 +964,10 @@
     }
 
     @media (max-width: 640px) {
+      .topbar-brand {
+        font-size: 18px;
+      }
+
       .welcome {
         padding-top: 32px;
       }
@@ -912,7 +1007,7 @@
       }
 
       .topbar-brand {
-        font-size: 16px;
+        font-size: 20px;
       }
 
       .model-select select {
@@ -1016,7 +1111,7 @@
       }
 
       .topbar-brand {
-        font-size: 14px;
+        font-size: 16px;
       }
 
       .model-select select {
@@ -1079,10 +1174,10 @@
         <div class="chat-list" id="chatList"></div>
       </section>
 
-      <div class="account">
-        <div class="avatar" aria-hidden="true">F</div>
-        <div class="account-name">Your account</div>
-        <button class="icon-button" type="button" aria-label="Account settings">
+      <div class="account" id="accountTrigger" role="button" tabindex="0" aria-haspopup="dialog">
+        <div class="avatar" aria-hidden="true" id="accountAvatar">F</div>
+        <div class="account-name" id="accountNameLabel">Your account</div>
+        <button class="icon-button" id="accountButton" type="button" aria-label="Account settings">
           <svg viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="3" />
             <path
@@ -1091,6 +1186,32 @@
         </button>
       </div>
     </aside>
+
+    <div class="modal-overlay" id="accountModal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+        <div class="modal-head">
+          <h2 id="accountModalTitle">Account</h2>
+          <button class="icon-button" id="closeAccountModal" type="button" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path d="M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <label class="modal-field">
+          <span>Display name</span>
+          <input type="text" id="accountNameInput" maxlength="24" placeholder="Your name" autocomplete="off" />
+        </label>
+
+        <div class="modal-field">
+          <span>Model</span>
+          <div class="modal-static" id="accountModelLabel">GPT OSS 120B</div>
+        </div>
+
+        <button class="modal-danger" id="clearAllChatsButton" type="button">Clear all chats</button>
+      </div>
+    </div>
 
     <main class="main">
       <header class="topbar">
@@ -1293,6 +1414,15 @@
       searchInput: document.querySelector("#searchInput"),
       chatList: document.querySelector("#chatList"),
       modelSelect: document.querySelector("#modelSelect"),
+      accountTrigger: document.querySelector("#accountTrigger"),
+      accountButton: document.querySelector("#accountButton"),
+      accountAvatar: document.querySelector("#accountAvatar"),
+      accountNameLabel: document.querySelector("#accountNameLabel"),
+      accountModal: document.querySelector("#accountModal"),
+      closeAccountModal: document.querySelector("#closeAccountModal"),
+      accountNameInput: document.querySelector("#accountNameInput"),
+      accountModelLabel: document.querySelector("#accountModelLabel"),
+      clearAllChatsButton: document.querySelector("#clearAllChatsButton"),
       statusText: document.querySelector("#statusText"),
       statusDot: document.querySelector("#statusDot"),
       serverWarning: document.querySelector("#serverWarning"),
@@ -1329,6 +1459,7 @@
       bindEvents();
       markFileMode();
       updateTimeGreeting();
+      updateAccountDisplay();
       render();
       checkHealth();
     }
@@ -1348,6 +1479,43 @@
       els.modelSelect.addEventListener("change", () => {
         state.model = els.modelSelect.value;
         saveState();
+        updateAccountModelLabel();
+      });
+
+      const openAccount = () => openAccountModal();
+      els.accountTrigger.addEventListener("click", openAccount);
+      els.accountTrigger.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openAccount();
+        }
+      });
+      els.accountButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openAccount();
+      });
+      els.closeAccountModal.addEventListener("click", closeAccountModal);
+      els.accountModal.addEventListener("click", (event) => {
+        if (event.target === els.accountModal) closeAccountModal();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !els.accountModal.hidden) closeAccountModal();
+      });
+      els.accountNameInput.addEventListener("input", () => {
+        state.userName = els.accountNameInput.value.trim().slice(0, 24);
+        saveState();
+        updateAccountDisplay();
+      });
+      els.clearAllChatsButton.addEventListener("click", () => {
+        if (!state.chats.length) return;
+        const confirmed = window.confirm("Delete all chats? This can't be undone.");
+        if (!confirmed) return;
+        state.chats = [];
+        state.activeId = null;
+        createChat();
+        saveState();
+        render();
+        closeAccountModal();
       });
       els.stopButton.addEventListener("click", () => {
         if (streamController) streamController.abort();
@@ -1895,6 +2063,28 @@
       document.body.classList.remove("sidebar-open");
     }
 
+    function openAccountModal() {
+      els.accountNameInput.value = state.userName || "";
+      updateAccountModelLabel();
+      els.accountModal.hidden = false;
+      els.accountNameInput.focus();
+    }
+
+    function closeAccountModal() {
+      els.accountModal.hidden = true;
+    }
+
+    function updateAccountDisplay() {
+      const name = state.userName.trim();
+      els.accountNameLabel.textContent = name || "Your account";
+      els.accountAvatar.textContent = name ? name.trim()[0].toUpperCase() : "F";
+    }
+
+    function updateAccountModelLabel() {
+      const selectedOption = els.modelSelect.options[els.modelSelect.selectedIndex];
+      els.accountModelLabel.textContent = selectedOption ? selectedOption.textContent : state.model;
+    }
+
     function createChat() {
       const now = new Date().toISOString();
       const chat = {
@@ -1933,13 +2123,15 @@
         return {
           chats: Array.isArray(saved.chats) ? saved.chats : [],
           activeId: saved.activeId || null,
-          model: saved.model || DEFAULT_MODEL
+          model: saved.model || DEFAULT_MODEL,
+          userName: typeof saved.userName === "string" ? saved.userName : ""
         };
       } catch {
         return {
           chats: [],
           activeId: null,
-          model: DEFAULT_MODEL
+          model: DEFAULT_MODEL,
+          userName: ""
         };
       }
     }
