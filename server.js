@@ -6,13 +6,13 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 loadEnv(path.join(__dirname, ".env"));
 
-const PORT = Number(process.env.PORT || 5111);
+const PORT = Number(process.env.PORT || 5110);
 const ROOT_DIR = path.resolve(__dirname);
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const DEFAULT_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 const DEFAULT_SYSTEM_PROMPT =
   process.env.FAHAD_CORE_SYSTEM_PROMPT ||
-  "You are Fahad Core, a clear, practical, friendly AI assistant. Reply in English unless the user asks for another language.";
+  "You are Fahad Core, a clear, practical, friendly AI assistant. Reply in English unless the user asks for another language. Keep answers short and to the point by default - a few sentences or a short list is usually enough. Only go longer when the user explicitly asks for detail, a full explanation, or step-by-step instructions.";
 const MAX_BODY_BYTES = 1024 * 1024;
 const ALLOWED_MODELS = new Set(["openai/gpt-oss-120b", "openai/gpt-oss-20b"]);
 
@@ -95,8 +95,8 @@ async function handleChat(req, res) {
     messages: [{ role: "system", content: systemPrompt }, ...messages.slice(-40)],
     temperature: clamp(Number(body?.temperature ?? 0.6), 0, 2),
     top_p: 1,
-    max_completion_tokens: clampInt(Number(body?.maxTokens ?? 2048), 128, 8192),
-    reasoning_effort: normalizeReasoning(body?.reasoningEffort),
+    max_completion_tokens: clampInt(Number(body?.maxTokens ?? 700), 128, 8192),
+    reasoning_effort: normalizeReasoning(body?.reasoningEffort ?? "low"),
     stream: true
   };
 
@@ -259,7 +259,7 @@ function normalizeModel(value) {
 }
 
 function normalizeReasoning(value) {
-  return ["low", "medium", "high"].includes(value) ? value : "medium";
+  return ["low", "medium", "high"].includes(value) ? value : "low";
 }
 
 function clamp(value, min, max) {
