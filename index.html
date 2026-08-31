@@ -408,7 +408,7 @@
     .topbar-brand {
       justify-self: start;
       display: inline-flex;
-      font-size: 24px;
+      font-size: 30px;
       font-weight: 900;
       letter-spacing: 0;
       font-variant-ligatures: none;
@@ -667,10 +667,13 @@
       background: var(--accent);
     }
 
-    .send-button:disabled,
-    .stop-button:disabled {
+    .send-button:disabled {
       cursor: not-allowed;
       opacity: 0.55;
+    }
+
+    .stop-button:disabled {
+      display: none;
     }
 
     .suggestions {
@@ -740,6 +743,10 @@
       border-radius: 12px;
       font-size: 13px;
       font-weight: 800;
+    }
+
+    .message-avatar-brain {
+      background: #f4dac9;
     }
 
     .message.user .message-avatar {
@@ -964,10 +971,6 @@
     }
 
     @media (max-width: 640px) {
-      .topbar-brand {
-        font-size: 18px;
-      }
-
       .welcome {
         padding-top: 32px;
       }
@@ -1007,7 +1010,7 @@
       }
 
       .topbar-brand {
-        font-size: 20px;
+        font-size: 25px;
       }
 
       .model-select select {
@@ -1091,10 +1094,6 @@
         font-size: 13px;
       }
 
-      .stop-button:disabled {
-        display: none;
-      }
-
       .file-chip-name {
         max-width: 160px;
       }
@@ -1102,21 +1101,32 @@
 
     @media (max-width: 400px) {
       .topbar {
-        padding: 0 12px;
-        gap: 10px;
-      }
-
-      .topbar-right {
+        padding: 0 10px;
         gap: 8px;
       }
 
+      .topbar-right {
+        gap: 6px;
+      }
+
       .topbar-brand {
-        font-size: 16px;
+        font-size: 19px;
+      }
+
+      .model-select {
+        grid-template-columns: auto 14px;
+        gap: 3px;
       }
 
       .model-select select {
-        max-width: 130px;
-        font-size: 15px;
+        max-width: 108px;
+        font-size: 12px;
+        padding: 0;
+      }
+
+      .model-select .icon svg {
+        width: 14px;
+        height: 14px;
       }
     }
   </style>
@@ -1287,14 +1297,7 @@
             <h1 id="welcomeTitle">Still up?</h1>
             <p id="welcomeSubtitle">Late-night ideas deserve a place to land.</p>
 
-            <div class="suggestions" aria-label="Prompt suggestions">
-              <button type="button" data-prompt="Write a short story about friendship">Write a short story about
-                friendship</button>
-              <button type="button" data-prompt="Help me improve my resume">Help me improve my resume</button>
-              <button type="button" data-prompt="Explain React hooks with an example">Explain React hooks with an
-                example</button>
-              <button type="button" data-prompt="Plan a budget weekend trip">Plan a budget weekend trip</button>
-            </div>
+            <div class="suggestions" id="suggestions" aria-label="Prompt suggestions"></div>
           </div>
 
           <form class="prompt-box" id="welcomeForm">
@@ -1394,6 +1397,66 @@
     const DEFAULT_SYSTEM_PROMPT =
       "You are Fahad Core, a clear, practical, friendly AI assistant. Reply in English unless the user asks for another language. Keep answers short and to the point by default - a few sentences or a short list is usually enough. Only go longer when the user explicitly asks for detail, a full explanation, or step-by-step instructions.";
 
+    const SUGGESTION_POOL = [
+      // Study & learning
+      "Help me make a study schedule",
+      "Explain photosynthesis simply",
+      "Quiz me on world capitals",
+      "Summarize this chapter for me",
+      "Create flashcards for biology terms",
+      "Explain Newton's laws with examples",
+      "Help me revise for my exam",
+      "Break down this math problem step by step",
+      "Explain the difference between let and const",
+      "Give me 5 tips to memorize faster",
+      "Explain quantum computing like I'm 10",
+      "Help me write a research paper outline",
+      "Explain how photosynthesis works",
+      "Simplify this concept for a beginner",
+      "Create a revision timetable for finals",
+      "Explain supply and demand with an example",
+      "Help me understand recursion in coding",
+      "Give me practice questions on algebra",
+      // Coding & tech
+      "Explain React hooks with an example",
+      "Help me debug a JavaScript error",
+      "Compare React and Vue for a new project",
+      "Explain how blockchain works",
+      "Write a Python script to sort a list",
+      "Explain REST APIs simply",
+      "Help me optimize this SQL query",
+      // Career & productivity
+      "Help me improve my resume",
+      "Draft a polite email to my manager",
+      "Write a cover letter for a job",
+      "Help me negotiate a salary raise",
+      "Give me tips to improve focus",
+      "Help me plan my week productively",
+      "Suggest ways to beat procrastination",
+      // Creative & aesthetic
+      "Write a poem about the ocean",
+      "Suggest a minimalist morning routine",
+      "Write a calm, aesthetic bio for my profile",
+      "Give me cozy autumn playlist ideas",
+      "Write a short story about friendship",
+      "Suggest aesthetic journaling prompts",
+      "Write a witty caption for a photo",
+      "Describe a peaceful rainy evening",
+      "Give me ideas for a minimal desk setup",
+      // Health & lifestyle
+      "Give me 5 healthy breakfast ideas",
+      "Suggest a workout routine for beginners",
+      "Suggest a simple self-care checklist",
+      "Give me tips for better sleep",
+      // Travel & fun
+      "Plan a budget weekend trip",
+      "Plan a 3-day itinerary for Goa",
+      "Suggest gift ideas under $30",
+      "Write a birthday message for a friend",
+      "Give me ideas for a YouTube channel",
+      "Suggest a book based on my mood"
+    ];
+
     const state = loadState();
     let streamController = null;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1448,6 +1511,7 @@
       chatFileChip: document.querySelector("#chatFileChip"),
       chatFileChipName: document.querySelector("#chatFileChipName"),
       chatFileChipRemove: document.querySelector("#chatFileChipRemove"),
+      suggestions: document.querySelector("#suggestions"),
       stopButton: document.querySelector("#stopButton"),
       messages: document.querySelector("#messages")
     };
@@ -1459,6 +1523,7 @@
       bindEvents();
       markFileMode();
       updateTimeGreeting();
+      renderSuggestions();
       updateAccountDisplay();
       render();
       checkHealth();
@@ -1471,6 +1536,8 @@
       els.newChatButton.addEventListener("click", () => {
         createChat();
         saveState();
+        updateTimeGreeting();
+        renderSuggestions();
         render();
         closeSidebar();
         els.welcomeInput.focus();
@@ -1548,14 +1615,6 @@
         });
       });
 
-      document.querySelectorAll("[data-prompt]").forEach((button) => {
-        button.addEventListener("click", () => {
-          els.welcomeInput.value = button.dataset.prompt || "";
-          resizeTextarea(els.welcomeInput);
-          updateSendButtons();
-          els.welcomeInput.focus();
-        });
-      });
     }
 
     async function checkHealth() {
@@ -1644,6 +1703,28 @@
 
       els.welcomeTitle.textContent = greeting.title;
       els.welcomeSubtitle.textContent = greeting.subtitle;
+    }
+
+    function renderSuggestions() {
+      if (!els.suggestions) return;
+
+      const shuffled = [...SUGGESTION_POOL].sort(() => Math.random() - 0.5);
+      const picked = shuffled.slice(0, 4);
+
+      els.suggestions.innerHTML = "";
+      picked.forEach((prompt) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.prompt = prompt;
+        button.textContent = prompt;
+        button.addEventListener("click", () => {
+          els.welcomeInput.value = prompt;
+          resizeTextarea(els.welcomeInput);
+          updateSendButtons();
+          els.welcomeInput.focus();
+        });
+        els.suggestions.append(button);
+      });
     }
 
     function markFileMode() {
@@ -1816,7 +1897,32 @@
 
         const avatar = document.createElement("div");
         avatar.className = "message-avatar";
-        avatar.textContent = message.role === "user" ? "YOU" : "FC";
+        if (message.role === "user") {
+          avatar.textContent = "YOU";
+        } else {
+          avatar.classList.add("message-avatar-brain");
+          avatar.innerHTML = `
+              <svg viewBox="0 0 24 24" width="19" height="19">
+                <defs>
+                  <linearGradient id="msgBrainGradLeft-${message.id}" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#efa484" />
+                    <stop offset="100%" stop-color="#c15f42" />
+                  </linearGradient>
+                  <linearGradient id="msgBrainGradRight-${message.id}" x1="100%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#e8896a" />
+                    <stop offset="100%" stop-color="#a84b34" />
+                  </linearGradient>
+                </defs>
+                <path d="M9.3 3.1c-2 0-3.6 1.5-3.8 3.4-1.4.5-2.4 1.9-2.4 3.5 0 .9.3 1.8.9 2.5-.4.6-.7 1.4-.7 2.1 0 1.9 1.4 3.5 3.2 3.8.2 1.8 1.8 3.2 3.6 3.2.7 0 1.3-.2 1.9-.5V4.6c-.7-.9-1.7-1.5-2.7-1.5Z" fill="url(#msgBrainGradLeft-${message.id})" stroke="#8f4530" stroke-width="0.6" stroke-linejoin="round" />
+                <path d="M14.7 3.1c2 0 3.6 1.5 3.8 3.4 1.4.5 2.4 1.9 2.4 3.5 0 .9-.3 1.8-.9 2.5.4.6.7 1.4.7 2.1 0 1.9-1.4 3.5-3.2 3.8-.2 1.8-1.8 3.2-3.6 3.2-.7 0-1.3-.2-1.9-.5V4.6c.7-.9 1.7-1.5 2.7-1.5Z" fill="url(#msgBrainGradRight-${message.id})" stroke="#8f4530" stroke-width="0.6" stroke-linejoin="round" />
+                <path d="M12 4.6v16.5" stroke="#8f4530" stroke-width="0.6" stroke-linecap="round" opacity="0.55" />
+                <path d="M6.3 8c1 -.3 2 -.1 2.6.7M5.7 11.4c.9-.2 1.8 0 2.4.7M6.3 14.9c.8-.2 1.6 0 2.2.6M7.2 18c.6-.1 1.2.1 1.6.5" fill="none" stroke="#8f4530" stroke-width="0.55" stroke-linecap="round" opacity="0.65" />
+                <path d="M17.7 8c-1-.3-2-.1-2.6.7M18.3 11.4c-.9-.2-1.8 0-2.4.7M17.7 14.9c-.8-.2-1.6 0-2.2.6M16.8 18c-.6-.1-1.2.1-1.6.5" fill="none" stroke="#8f4530" stroke-width="0.55" stroke-linecap="round" opacity="0.65" />
+                <ellipse cx="8.3" cy="6.6" rx="1.7" ry="1.05" fill="#fff" opacity="0.4" />
+                <ellipse cx="15.9" cy="7.3" rx="1.1" ry="0.7" fill="#fff" opacity="0.25" />
+              </svg>
+            `;
+        }
 
         const bubble = document.createElement("div");
         bubble.className = "bubble";
