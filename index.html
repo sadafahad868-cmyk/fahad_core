@@ -6,6 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fahxd Core</title>
   <link rel="icon" href="/fahad-core-mark.svg" />
+
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#b9553b" />
+  <meta name="description" content="Fahxd Core - Your AI-powered chatbot assistant" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fahxd" />
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+  <link rel="manifest" href="/manifest.json" />
   <style>
     :root {
       color-scheme: light;
@@ -1392,6 +1401,23 @@
   </div>
 
   <script>
+    // Register Service Worker for PWA functionality
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then((registration) => {
+            console.log('Service Worker registered:', registration);
+            // Check for updates periodically (every hour)
+            setInterval(() => {
+              registration.update();
+            }, 3600000);
+          })
+          .catch((error) => {
+            console.log('Service Worker registration failed:', error);
+          });
+      });
+    }
+
     const STORAGE_KEY = "fahad-core-claude-style-v1";
     const DEFAULT_MODEL = "openai/gpt-oss-120b";
     const DEFAULT_SYSTEM_PROMPT =

@@ -35,6 +35,8 @@ const server = http.createServer(async (req, res) => {
   try {
     if (url.pathname === "/api/health") return handleHealth(req, res);
     if (url.pathname === "/api/chat") return handleChat(req, res);
+    if (url.pathname === "/manifest.json") return serveManifest(res);
+    if (url.pathname === "/service-worker.js") return serveServiceWorker(res);
     return serveStatic(url.pathname, res);
   } catch (error) {
     console.error(error);
@@ -215,6 +217,36 @@ function serveStatic(requestPath, res) {
   res.writeHead(200, {
     "Content-Type": mimeTypes[ext] || "application/octet-stream",
     "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=3600"
+  });
+  createReadStream(filePath).pipe(res);
+}
+
+function serveManifest(res) {
+  const filePath = path.join(ROOT_DIR, "manifest.json");
+
+  if (!existsSync(filePath)) {
+    return sendJson(res, 404, { error: "Manifest not found" });
+  }
+
+  res.writeHead(200, {
+    "Content-Type": "application/manifest+json; charset=utf-8",
+    "Cache-Control": "public, max-age=86400"
+  });
+  createReadStream(filePath).pipe(res);
+}
+
+function serveServiceWorker(res) {
+  const filePath = path.join(ROOT_DIR, "service-worker.js");
+
+  if (!existsSync(filePath)) {
+    return sendText(res, 404, "Service Worker not found");
+  }
+
+  res.writeHead(200, {
+    "Content-Type": "text/javascript; charset=utf-8",
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0"
   });
   createReadStream(filePath).pipe(res);
 }
